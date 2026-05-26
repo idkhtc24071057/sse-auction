@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>실시간 경매</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1040 40%, #0d1b3e 100%);
+      min-height: 100vh;
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 30px 20px;
+    }
+
+    .auction-container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* 헤더 */
+    .header {
+      text-align: center;
+      padding: 10px 0 6px;
+    }
+
+    .header h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ff4d8d, #ff6fb5);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 2px;
+    }
+
+    /* 카드 공통 */
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 24px;
+      backdrop-filter: blur(12px);
+    }
+
+    /* 상품 정보 */
+    .item-section h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 0.92rem;
+    }
+
+    .info-label {
+      color: #8a8aad;
+    }
+
+    .info-value {
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .info-value.highlight {
+      color: #ff4d8d;
+      font-size: 1rem;
+    }
+
+    /* 타이머 */
+    .timer-section {
+      text-align: center;
+      padding: 28px 24px;
+    }
+
+    .timer-display {
+      font-size: 4.5rem;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 6px;
+      transition: color 0.3s ease;
+    }
+
+    .timer-display.urgent {
+      color: #ff3355;
+      animation: timerPulse 0.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes timerPulse {
+      from { opacity: 1; transform: scale(1); }
+      to   { opacity: 0.7; transform: scale(1.04); }
+    }
+
+    .timer-label {
+      font-size: 0.85rem;
+      color: #8a8aad;
+    }
+
+    /* 시작 버튼 */
+    .start-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: 'Noto Sans KR', sans-serif;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #ff4d8d, #ff2e6c);
+      color: #fff;
+      letter-spacing: 1px;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .start-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(255, 77, 141, 0.35);
+    }
+
+    .start-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* 입찰 폼 */
+    .bid-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bid-section input {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-family: 'Noto Sans KR', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .bid-section input::placeholder {
+      color: #6a6a8a;
+    }
+
+    .bid-section input:focus {
+      border-color: rgba(255, 77, 141, 0.5);
+    }
+
+    .bid-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: 'Noto Sans KR', sans-serif;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #ff4d8d, #ff2e6c);
+      color: #fff;
+      letter-spacing: 1px;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .bid-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(255, 77, 141, 0.35);
+    }
+
+    .bid-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* 입찰 내역 */
+    .history-section h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #fff;
+    }
+
+    .history-list {
+      max-height: 220px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .history-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+
+    .history-empty {
+      font-size: 0.88rem;
+      color: #6a6a8a;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      font-size: 0.88rem;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .history-user {
+      font-weight: 600;
+      color: #c8c8e0;
+    }
+
+    .history-amount {
+      font-weight: 700;
+      color: #ff6fb5;
+    }
+
+    .history-time {
+      font-size: 0.75rem;
+      color: #6a6a8a;
+    }
+
+    /* 경매 종료 오버레이 */
+    .auction-end-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .auction-end-overlay.show {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .end-card {
+      background: linear-gradient(145deg, #2a0a1e, #1a0a2e);
+      border: 2px solid rgba(255, 77, 141, 0.4);
+      border-radius: 20px;
+      padding: 40px 48px;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(255, 77, 141, 0.2);
+      animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes scaleIn {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .end-title {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #ff4d8d;
+      margin-bottom: 16px;
+    }
+
+    .end-trophy {
+      font-size: 2.4rem;
+      margin-bottom: 8px;
+    }
+
+    .end-winner {
+      font-size: 1.1rem;
+      color: #c8c8e0;
+      margin-bottom: 8px;
+    }
+
+    .end-price {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #ffd700;
+      margin-bottom: 24px;
+    }
+
+    .end-close-btn {
+      padding: 12px 36px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: 'Noto Sans KR', sans-serif;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .end-close-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* 에러 토스트 */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #ff3355;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      z-index: 200;
+      opacity: 0;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 연결 상태 표시 */
+    .connection-status {
+      text-align: center;
+      font-size: 0.78rem;
+      color: #6a6a8a;
+      padding: 4px 0;
+    }
+
+    .connection-status .dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #44cc66;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    .connection-status .dot.disconnected {
+      background: #ff3355;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="auction-container">
+    <!-- 헤더 -->
+    <div class="header">
+      <h1>실시간 경매</h1>
+    </div>
+
+    <!-- 연결 상태 -->
+    <div class="connection-status" id="connectionStatus">
+      <span class="dot disconnected" id="statusDot"></span>
+      <span id="statusText">연결 중...</span>
+    </div>
+
+    <!-- 상품 정보 카드 -->
+    <div class="card item-section">
+      <h2 id="itemName">희귀 빈티지 시계</h2>
+      <div class="info-row">
+        <span class="info-label">시작가</span>
+        <span class="info-value" id="startPrice">100,000원</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">현재 최고가</span>
+        <span class="info-value highlight" id="currentPrice">100,000원</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">최고 입찰자</span>
+        <span class="info-value" id="highestBidder">없음</span>
+      </div>
+    </div>
+
+    <!-- 타이머 카드 -->
+    <div class="card timer-section">
+      <div class="timer-display" id="timerDisplay">30</div>
+      <div class="timer-label">남은 시간 (초)</div>
+    </div>
+
+    <!-- 경매 시작 버튼 -->
+    <button class="start-btn" id="startBtn">경매 시작</button>
+
+    <!-- 입찰 폼 카드 -->
+    <div class="card bid-section">
+      <input type="text" id="username" placeholder="이름을 입력하세요" maxlength="20">
+      <input type="number" id="bidAmount" placeholder="입찰 금액을 입력하세요" min="0">
+      <button class="bid-btn" id="bidBtn" disabled>입찰하기</button>
+    </div>
+
+    <!-- 입찰 내역 카드 -->
+    <div class="card history-section">
+      <h3>입찰 내역</h3>
+      <div class="history-list" id="historyList">
+        <div class="history-empty">입찰 내역이 없습니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 경매 종료 오버레이 -->
+  <div class="auction-end-overlay" id="endOverlay">
+    <div class="end-card">
+      <div class="end-title">경매 종료!</div>
+      <div class="end-trophy">🏆</div>
+      <div class="end-winner" id="endWinner"></div>
+      <div class="end-price" id="endPrice"></div>
+      <button class="end-close-btn" id="endCloseBtn">확인</button>
+    </div>
+  </div>
+
+  <!-- 에러 토스트 -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // DOM 요소 참조
+    const itemNameEl = document.getElementById('itemName');
+    const startPriceEl = document.getElementById('startPrice');
+    const currentPriceEl = document.getElementById('currentPrice');
+    const highestBidderEl = document.getElementById('highestBidder');
+    const timerDisplayEl = document.getElementById('timerDisplay');
+    const startBtnEl = document.getElementById('startBtn');
+    const usernameEl = document.getElementById('username');
+    const bidAmountEl = document.getElementById('bidAmount');
+    const bidBtnEl = document.getElementById('bidBtn');
+    const historyListEl = document.getElementById('historyList');
+    const endOverlayEl = document.getElementById('endOverlay');
+    const endWinnerEl = document.getElementById('endWinner');
+    const endPriceEl = document.getElementById('endPrice');
+    const endCloseBtnEl = document.getElementById('endCloseBtn');
+    const toastEl = document.getElementById('toast');
+    const statusDotEl = document.getElementById('statusDot');
+    const statusTextEl = document.getElementById('statusText');
+
+    let isAuctionRunning = false;
+    let toastTimeout;
+
+    // 금액 포맷
+    function formatPrice(price) {
+      return Number(price).toLocaleString() + '원';
+    }
+
+    // 시간 포맷
+    function formatTime(isoString) {
+      const d = new Date(isoString);
+      return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    // 토스트 메시지 표시
+    function showToast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toastEl.classList.remove('show');
+      }, 3000);
+    }
+
+    // ===== SSE (EventSource) 연결 =====
+    function connectSSE() {
+      const eventSource = new EventSource('/events');
+
+      // 연결 열림
+      eventSource.onopen = () => {
+        statusDotEl.classList.remove('disconnected');
+        statusTextEl.textContent = '서버 연결됨';
+      };
+
+      // 일반 메시지 수신 (초기 연결 메시지)
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('연결:', data.message);
+      };
+
+      // 경매 상태 이벤트 수신
+      eventSource.addEventListener('auctionState', (event) => {
+        const data = JSON.parse(event.data);
+        updateAuctionState(data);
+      });
+
+      // 타이머 업데이트 이벤트 수신
+      eventSource.addEventListener('timerUpdate', (event) => {
+        const data = JSON.parse(event.data);
+        updateTimer(data.timeLeft);
+      });
+
+      // 새 입찰 이벤트 수신
+      eventSource.addEventListener('newBid', (event) => {
+        // auctionState 이벤트에서 이미 갱신됨
+      });
+
+      // 경매 종료 이벤트 수신
+      eventSource.addEventListener('auctionEnd', (event) => {
+        const data = JSON.parse(event.data);
+        handleAuctionEnd(data);
+      });
+
+      // 오류 처리
+      eventSource.onerror = () => {
+        statusDotEl.classList.add('disconnected');
+        statusTextEl.textContent = '연결 끊김 — 재연결 중...';
+        bidBtnEl.disabled = true;
+      };
+    }
+
+    // 경매 상태 업데이트
+    function updateAuctionState(data) {
+      isAuctionRunning = data.isRunning;
+      itemNameEl.textContent = data.itemName;
+      startPriceEl.textContent = formatPrice(data.startPrice);
+      currentPriceEl.textContent = formatPrice(data.currentPrice);
+      highestBidderEl.textContent = data.highestBidder || '없음';
+      timerDisplayEl.textContent = data.timeLeft;
+
+      // 버튼 상태
+      startBtnEl.disabled = isAuctionRunning;
+      bidBtnEl.disabled = !isAuctionRunning;
+
+      // 타이머 색상
+      if (data.timeLeft <= 10) {
+        timerDisplayEl.classList.add('urgent');
+      } else {
+        timerDisplayEl.classList.remove('urgent');
+      }
+
+      // 입찰 내역 렌더링
+      renderHistory(data.bidHistory);
+    }
+
+    // 타이머 업데이트
+    function updateTimer(timeLeft) {
+      timerDisplayEl.textContent = timeLeft;
+      if (timeLeft <= 10) {
+        timerDisplayEl.classList.add('urgent');
+      } else {
+        timerDisplayEl.classList.remove('urgent');
+      }
+      if (timeLeft <= 0) {
+        bidBtnEl.disabled = true;
+        startBtnEl.disabled = false;
+        isAuctionRunning = false;
+      }
+    }
+
+    // 경매 종료 처리
+    function handleAuctionEnd(data) {
+      isAuctionRunning = false;
+      bidBtnEl.disabled = true;
+      startBtnEl.disabled = false;
+
+      if (data.winner) {
+        endWinnerEl.textContent = `🏆 ${data.winner}님 낙찰!`;
+        endPriceEl.textContent = formatPrice(data.finalPrice);
+      } else {
+        endWinnerEl.textContent = '입찰자가 없습니다.';
+        endPriceEl.textContent = '';
+      }
+      endOverlayEl.classList.add('show');
+    }
+
+    // 입찰 내역 렌더링
+    function renderHistory(history) {
+      if (!history || history.length === 0) {
+        historyListEl.innerHTML = '<div class="history-empty">입찰 내역이 없습니다.</div>';
+        return;
+      }
+
+      historyListEl.innerHTML = '';
+      history.forEach((item) => {
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.innerHTML = `
+          <span class="history-user">${item.username}</span>
+          <span class="history-amount">${formatPrice(item.amount)}</span>
+          <span class="history-time">${formatTime(item.timestamp)}</span>
+        `;
+        historyListEl.appendChild(div);
+      });
+    }
+
+    // ===== HTTP POST로 입찰 전송 =====
+    async function sendBid() {
+      const username = usernameEl.value.trim();
+      const amount = bidAmountEl.value.trim();
+
+      if (!username) {
+        showToast('이름을 입력해주세요.');
+        usernameEl.focus();
+        return;
+      }
+      if (!amount || isNaN(amount) || Number(amount) <= 0) {
+        showToast('유효한 금액을 입력해주세요.');
+        bidAmountEl.focus();
+        return;
+      }
+
+      try {
+        const response = await fetch('/bid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, amount: Number(amount) }),
+        });
+        const result = await response.json();
+
+        if (!result.success) {
+          showToast(result.message);
+        } else {
+          bidAmountEl.value = '';
+        }
+      } catch (err) {
+        showToast('서버 통신 오류가 발생했습니다.');
+      }
+    }
+
+    // ===== HTTP POST로 경매 시작 요청 =====
+    async function requestStartAuction() {
+      try {
+        const response = await fetch('/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const result = await response.json();
+
+        if (!result.success) {
+          showToast(result.message);
+        }
+      } catch (err) {
+        showToast('서버 통신 오류가 발생했습니다.');
+      }
+    }
+
+    // 이벤트 리스너
+    startBtnEl.addEventListener('click', requestStartAuction);
+    bidBtnEl.addEventListener('click', sendBid);
+
+    bidAmountEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendBid();
+    });
+
+    usernameEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') bidAmountEl.focus();
+    });
+
+    endCloseBtnEl.addEventListener('click', () => {
+      endOverlayEl.classList.remove('show');
+    });
+
+    // 초기 SSE 연결
+    connectSSE();
+  </script>
+</body>
+</html>
