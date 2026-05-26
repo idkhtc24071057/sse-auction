@@ -26,6 +26,7 @@ const auctionState = {
   highestBidder: null,
   timeLeft: 30,
   isRunning: false,
+  isEnded: false,
   bidHistory: [],
   timerId: null,
 };
@@ -47,13 +48,14 @@ function broadcastAuctionState() {
     highestBidder: auctionState.highestBidder,
     timeLeft: auctionState.timeLeft,
     isRunning: auctionState.isRunning,
+    isEnded: auctionState.isEnded,
     bidHistory: auctionState.bidHistory,
   });
 }
 
 // 경매 시작
 function startAuction() {
-  if (auctionState.isRunning) return;
+  if (auctionState.isRunning || auctionState.isEnded) return;
 
   auctionState.isRunning = true;
   auctionState.timeLeft = 30;
@@ -78,6 +80,7 @@ function startAuction() {
       clearInterval(auctionState.timerId);
       auctionState.timerId = null;
       auctionState.isRunning = false;
+      auctionState.isEnded = true;
 
       // 경매 종료 이벤트 전송
       broadcast('auctionEnd', {
@@ -110,6 +113,7 @@ app.get('/events', (req, res) => {
     highestBidder: auctionState.highestBidder,
     timeLeft: auctionState.timeLeft,
     isRunning: auctionState.isRunning,
+    isEnded: auctionState.isEnded,
     bidHistory: auctionState.bidHistory,
   })}\n\n`;
   res.write(statePayload);
@@ -135,8 +139,12 @@ app.post('/bid', (req, res) => {
   const { username, amount } = req.body;
 
   // 유효성 검사
+  if (auctionState.isEnded) {
+    return res.json({ success: false, message: '경매가 이미 종료되었습니다.' });
+  }
+
   if (!auctionState.isRunning) {
-    return res.json({ success: false, message: '경매가 진행 중이 아닙니다.' });
+    startAuction();
   }
 
   if (!username || username.trim() === '') {

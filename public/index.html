@@ -116,34 +116,6 @@
       color: #8a8aad;
     }
 
-    /* 시작 버튼 */
-    .start-btn {
-      display: block;
-      width: 100%;
-      padding: 14px;
-      font-size: 1rem;
-      font-weight: 700;
-      font-family: 'Noto Sans KR', sans-serif;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      background: linear-gradient(135deg, #ff4d8d, #ff2e6c);
-      color: #fff;
-      letter-spacing: 1px;
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-
-    .start-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 24px rgba(255, 77, 141, 0.35);
-    }
-
-    .start-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
 
     /* 입찰 폼 */
     .bid-section {
@@ -426,14 +398,11 @@
       <div class="timer-label">남은 시간 (초)</div>
     </div>
 
-    <!-- 경매 시작 버튼 -->
-    <button class="start-btn" id="startBtn">경매 시작</button>
-
     <!-- 입찰 폼 카드 -->
     <div class="card bid-section">
       <input type="text" id="username" placeholder="이름을 입력하세요" maxlength="20">
       <input type="number" id="bidAmount" placeholder="입찰 금액을 입력하세요" min="0">
-      <button class="bid-btn" id="bidBtn" disabled>입찰하기</button>
+      <button class="bid-btn" id="bidBtn">입찰하기</button>
     </div>
 
     <!-- 입찰 내역 카드 -->
@@ -466,7 +435,6 @@
     const currentPriceEl = document.getElementById('currentPrice');
     const highestBidderEl = document.getElementById('highestBidder');
     const timerDisplayEl = document.getElementById('timerDisplay');
-    const startBtnEl = document.getElementById('startBtn');
     const usernameEl = document.getElementById('username');
     const bidAmountEl = document.getElementById('bidAmount');
     const bidBtnEl = document.getElementById('bidBtn');
@@ -560,8 +528,7 @@
       timerDisplayEl.textContent = data.timeLeft;
 
       // 버튼 상태
-      startBtnEl.disabled = isAuctionRunning;
-      bidBtnEl.disabled = !isAuctionRunning;
+      bidBtnEl.disabled = data.isEnded;
 
       // 타이머 색상
       if (data.timeLeft <= 10) {
@@ -584,7 +551,6 @@
       }
       if (timeLeft <= 0) {
         bidBtnEl.disabled = true;
-        startBtnEl.disabled = false;
         isAuctionRunning = false;
       }
     }
@@ -593,7 +559,6 @@
     function handleAuctionEnd(data) {
       isAuctionRunning = false;
       bidBtnEl.disabled = true;
-      startBtnEl.disabled = false;
 
       if (data.winner) {
         endWinnerEl.textContent = `🏆 ${data.winner}님 낙찰!`;
@@ -659,25 +624,7 @@
       }
     }
 
-    // ===== HTTP POST로 경매 시작 요청 =====
-    async function requestStartAuction() {
-      try {
-        const response = await fetch('/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        const result = await response.json();
-
-        if (!result.success) {
-          showToast(result.message);
-        }
-      } catch (err) {
-        showToast('서버 통신 오류가 발생했습니다.');
-      }
-    }
-
     // 이벤트 리스너
-    startBtnEl.addEventListener('click', requestStartAuction);
     bidBtnEl.addEventListener('click', sendBid);
 
     bidAmountEl.addEventListener('keydown', (e) => {
